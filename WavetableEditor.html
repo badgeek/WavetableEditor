@@ -6,7 +6,7 @@ var context = new AudioContext();
 
 var project = {
 	name: "sounds",
-	sampleRate: 22050,
+	sampleRate: 44100,
 	normalize: true,
 	wavetable: []
 	};
@@ -164,26 +164,44 @@ function wavetableToHeader(name, sampleRate)
 {
 	var wavetable = project.wavetable;
 	var offsets = [0];
+	var text = "";
+
+
 	for(var i = 0; i < wavetable.length; i++)
-		offsets.push(offsets[i] + wavetable[i].array.length);
-	var b = new Int8Array(offsets[offsets.length - 1]);
-	for(var i = 0; i < wavetable.length; i++)
-		for(var j = 0; j < wavetable[i].array.length; j++)
-			b[offsets[i] + j] = Math.round(wavetable[i].array[j] * 127);
-	
-	var text = "const int " + name + "Offsets[] = {"
-	for(var i = 0; i < offsets.length; i++)
-		text += offsets[i] + ", ";
-	text += "};\r\n";
-	
-	text += "const signed char " + name + "Samples[] = {"
-	for(var i = 0; i < b.length; i++)
 	{
-		if((i & 63) == 0) text += "\r\n";
-		text += b[i] + ", ";
+		var name = wavetable[i].name.replace(".wav","");
+		text += "#define " + name + "LEN " + wavetable[i].array.length +  "UL\r\n"
 	}
-	text += "};\r\n";
-	text += "Wavetable " + name + "(" + name + "Samples, " + wavetable.length + ", " + name + "Offsets, " + sampleRate + ");\r\n";
+
+
+	for(var i = 0; i < wavetable.length; i++)
+	{
+		// offsets.push(offsets[i] + wavetable[i].array.length);
+		var name = wavetable[i].name.replace(".wav","");
+		text += "uint32_t " + name + "CNT;\r\n"
+	}
+
+
+
+	// text += "const int " + name + "Offsets[] = {"
+	// for(var i = 0; i < offsets.length; i++)
+	// 	text += offsets[i] + ", ";
+	// text += "};\r\n";
+
+	for(var i = 0; i < wavetable.length; i++)
+	{
+		var b = new Int16Array(wavetable[i].array.length);
+		for(var j = 0; j < wavetable[i].array.length; j++)
+			b[j] = (Math.round(wavetable[i].array[j] * 0x8000));
+		var name = wavetable[i].name.replace(".wav","");
+		text += "const uint16_t " + name + "["+b.length+"] PROGMEM = {"		
+		for(var k = 0; k < b.length; k++)
+		{
+			if((k & 63) == 0) text += "\r\n";
+			text += b[k] + ", ";
+		}
+		text += "};\r\n";					
+	}
 	return text;
 }
 
@@ -379,7 +397,7 @@ function update()
 		<span class="block options">
 			<span class="option">name <input id="name" type="text" value="sounds" style="width: 80px" onchange="update()"></span>
 			<span class="option"><input id="normalize" type="checkbox" checked onchange="update()">normalize</span>
-			<span class="option">sampling rate <input id="samplerate" type="number" value="22050" style="width: 60px" onchange="update()"></span>
+			<span class="option">sampling rate <input id="samplerate" type="number" value="44100" style="width: 60px" onchange="update()"></span>
 		</span>
 	</div>
 	<div class="hidden" id="files">
